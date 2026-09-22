@@ -1,0 +1,47 @@
+name: Markdown Skills Quiz Self-Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - '.github/**'
+      - 'tests/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'markdown-quiz.md'
+      - '.github/**'
+      - 'tests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  structural-test:
+    if: ${{ github.repository == 'KLIS-CS/GitHub-Markdown-Skills-Quiz' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate quiz structure
+        run: |
+          test -f README.md
+          test -f markdown-quiz.md
+          test -f .github/scripts/grade-markdown.js
+          test -f .github/workflows/grade.yml
+          test -f tests/grade-markdown.test.js
+          grep -q 'QUIZ-START' markdown-quiz.md
+          grep -q 'QUIZ-END' markdown-quiz.md
+          grep -q '100 points automatic' README.md
+          grep -q '15 minutes' README.md
+          grep -q 'Do not go to Actions' README.md
+
+      - name: Run grader fixture tests
+        run: node tests/grade-markdown.test.js
+
+      - name: Validate workflow YAML syntax
+        run: |
+          ruby -e "require 'yaml'; YAML.load_file('.github/workflows/grade.yml'); YAML.load_file('.github/workflows/template-self-test.yml'); puts 'Workflow YAML parsed successfully.'"

@@ -1,0 +1,81 @@
+name: Markdown Skills Quiz — Auto Grade
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'markdown-quiz.md'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  grade:
+    if: ${{ github.repository != 'KLIS-CS/GitHub-Markdown-Skills-Quiz' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Grade Markdown
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { gradeMarkdown } = require('./.github/scripts/grade-markdown');
+            const { owner, repo } = context.repo;
+            const marker = '<!-- klis-markdown-quiz-progress -->';
+
+            const source = fs.readFileSync('markdown-quiz.md', 'utf8');
+            const result = gradeMarkdown(source);
+
+            const rows = result.checks.map(check =>
+              `| ${check.earned === check.max ? '✅' : '⬜'} ${check.label} | ${check.earned}/${check.max} | ${check.detail} |`
+            ).join('\n');
+
+            const status = result.score === 100
+              ? '✅ **MASTERED — all Markdown skills passed.**'
+              : '🟡 **IN PROGRESS — fix the missing Markdown evidence and commit again.**';
+
+            const body = `${marker}
+            # Markdown Skills Quiz — Progress
+
+            **Student:** @${context.actor}  
+            **Repository:** https://github.com/${owner}/${repo}  
+            **Score:** **${result.score}/100**
+
+            | Skill | Score | Feedback |
+            |---|---:|---|
+            ${rows}
+
+            ${status}
+
+            Only content between \`QUIZ-START\` and \`QUIZ-END\` is graded. Commit a correction to \`markdown-quiz.md\` to re-grade automatically.`;
+
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'all', per_page: 100
+            });
+            const existing = issues.find(i => !i.pull_request && i.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner, repo, issue_number: existing.number, state: 'open', body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, title: 'Markdown Skills Quiz — Progress', body
+              });
+            }
+
+            await core.summary
+              .addHeading(`Markdown Skills Quiz: ${result.score}/100`)
+              .addTable([
+                [{ data: 'Skill', header: true }, { data: 'Score', header: true }, { data: 'Feedback', header: true }],
+                ...result.checks.map(c => [c.label, `${c.earned}/${c.max}`, c.detail])
+              ])
+              .write();
+
+            if (result.score !== 100) {
+              core.setFailed(`Markdown Skills Quiz score is ${result.score}/100.`);
+            }
