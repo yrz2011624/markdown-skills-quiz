@@ -19,6 +19,30 @@ Complete every task in the answer area below. Do not delete the `QUIZ-START` or 
 
 <!-- QUIZ-START -->
 
-Replace this line with your Markdown answers.
+# My Markdown Skills
+***Tom is handsome!***
+* First item
+* Second item
+* Third item
+1. First item
+2. Second item
+3. Third item
+   
+这是一个链接 [github](https://github.com/yrz2011624/markdown-skills-quiz.git)   
+`git status`  
+- [ ] not finishi
+- [x] finishied
+      
+```
 
+  git add .
+git commit -m "markdown quiz"
+
+```
+> hellow i'm fine thank you
+
+| heart rate/ people | A | B |
+| ----- | ----- | ----- |
+| sleep | 60 | 71 |
+| active | 98| 108 |
 <!-- QUIZ-END -->
